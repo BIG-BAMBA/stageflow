@@ -1,0 +1,17 @@
+﻿.venv/
+venv/
+.env
+*.db
+*.sqlite
+*.sqlite3
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+alembic/versions/__pycache__/
+.vscode/
+*.egg-info/
+dist/
+build/
+.DS_Store
+Thumbs.db
