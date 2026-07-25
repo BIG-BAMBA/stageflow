@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 
 from app.api.routes.auth import router as auth_router
@@ -6,6 +8,8 @@ from app.api.routes.offers import router as offers_router
 from app.core.config import settings
 from app.middlewares.request_id import add_request_id_middleware
 from app.middlewares.security_headers import add_security_headers_middleware
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 app = FastAPI(title="StageFlow API", version="1.0.0", description="Secure internship management workflow")
 

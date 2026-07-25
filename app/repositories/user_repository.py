@@ -20,3 +20,14 @@ class UserRepository:
     @staticmethod
     def get_by_id(db: Session, user_id: int) -> User | None:
         return db.query(User).filter(User.id == user_id).first()
+
+    @staticmethod
+    def list_all(db: Session) -> list[User]:
+        return db.query(User).order_by(User.id).all()
+
+    @staticmethod
+    def update_role(db: Session, user: User, new_role: str) -> User:
+        user.role = new_role
+        db.commit()
+        db.refresh(user)
+        return user

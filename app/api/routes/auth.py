@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from app.core.errors import error_responses
 from app.core.security import create_access_token, verify_password
 from app.db.session import get_db
 from app.repositories.user_repository import UserRepository
@@ -11,7 +12,13 @@ from app.schemas.user import UserMe
 router = APIRouter()
 
 
-@router.post("/login", response_model=Token, tags=["auth"])
+@router.post(
+    "/login",
+    response_model=Token,
+    tags=["auth"],
+    summary="Obtenir un jeton JWT (OAuth2 password flow)",
+    responses=error_responses(401),
+)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> Token:
     user = UserRepository.get_by_email(db, form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -20,7 +27,14 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return Token(access_token=token)
 
 
-@router.post("/register", response_model=UserMe, status_code=status.HTTP_201_CREATED, tags=["auth"])
+@router.post(
+    "/register",
+    response_model=UserMe,
+    status_code=status.HTTP_201_CREATED,
+    tags=["auth"],
+    summary="Créer un compte utilisateur",
+    responses=error_responses(400),
+)
 def register(user_data: UserCreate, db: Session = Depends(get_db)) -> UserMe:
     existing = UserRepository.get_by_email(db, str(user_data.email))
     if existing:

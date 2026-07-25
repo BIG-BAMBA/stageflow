@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserRead(BaseModel):
@@ -13,3 +13,7 @@ class UserMe(BaseModel):
     email: EmailStr
     full_name: str
     role: str
+
+
+class UserRoleUpdate(BaseModel):
+    role: str = Field(..., examples=["student", "company", "program_manager", "admin"])

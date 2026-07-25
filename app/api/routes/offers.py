@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.errors import raise_business_error, raise_forbidden, raise_not_found
+from app.core.errors import error_responses, raise_business_error, raise_forbidden, raise_not_found
 from app.core.permissions import require_authenticated_user, require_role
 from app.db.session import get_db
 from app.repositories.offer_repository import OfferRepository
@@ -13,7 +13,13 @@ from app.models.offer import Offer
 router = APIRouter()
 
 
-@router.post("/offers", response_model=OfferRead, tags=["offers"])
+@router.post(
+    "/offers",
+    response_model=OfferRead,
+    tags=["offers"],
+    summary="Créer une offre en brouillon",
+    responses=error_responses(401, 403),
+)
 def create_offer(payload: OfferCreate, current_user: dict = Depends(require_role("company", "admin")), db: Session = Depends(get_db)) -> OfferRead:
     company_id = payload.company_id if payload.company_id is not None else current_user["id"]
     offer = OfferRepository.create(db, title=payload.title, mission=payload.mission, competences=payload.competences, company_id=company_id)
@@ -47,7 +53,13 @@ def list_offers(current_user: dict = Depends(require_authenticated_user), db: Se
     return [OfferRead(id=offer.id, title=offer.title, mission=offer.mission, competences=offer.competences, company_id=offer.company_id, status=offer.status) for offer in visible]
 
 
-@router.get("/offers/{offer_id}", response_model=OfferRead, tags=["offers"])
+@router.get(
+    "/offers/{offer_id}",
+    response_model=OfferRead,
+    tags=["offers"],
+    summary="Consulter une offre",
+    responses=error_responses(401, 403, 404),
+)
 def get_offer(offer_id: int, current_user: dict = Depends(require_authenticated_user), db: Session = Depends(get_db)) -> OfferRead:
     offer = OfferRepository.get_by_id(db, offer_id)
     if not offer:
@@ -60,7 +72,13 @@ def get_offer(offer_id: int, current_user: dict = Depends(require_authenticated_
     return OfferRead(id=offer.id, title=offer.title, mission=offer.mission, competences=offer.competences, company_id=offer.company_id, status=offer.status)
 
 
-@router.patch("/offers/{offer_id}/submit", response_model=OfferRead, tags=["offers"])
+@router.patch(
+    "/offers/{offer_id}/submit",
+    response_model=OfferRead,
+    tags=["offers"],
+    summary="Soumettre une offre en brouillon (draft -> submitted)",
+    responses=error_responses(400, 401, 403, 404),
+)
 def submit_offer(offer_id: int, current_user: dict = Depends(require_role("company", "admin")), db: Session = Depends(get_db)) -> OfferRead:
     offer = OfferRepository.get_by_id(db, offer_id)
     if not offer:
@@ -75,7 +93,13 @@ def submit_offer(offer_id: int, current_user: dict = Depends(require_role("compa
     return OfferRead(id=offer.id, title=offer.title, mission=offer.mission, competences=offer.competences, company_id=offer.company_id, status=offer.status)
 
 
-@router.patch("/offers/{offer_id}/review", response_model=OfferRead, tags=["offers"])
+@router.patch(
+    "/offers/{offer_id}/review",
+    response_model=OfferRead,
+    tags=["offers"],
+    summary="Publier ou refuser une offre soumise (réservé au responsable pédagogique)",
+    responses=error_responses(400, 401, 403, 404),
+)
 def review_offer(offer_id: int, payload: OfferReview, current_user: dict = Depends(require_role("program_manager", "admin")), db: Session = Depends(get_db)) -> OfferRead:
     offer = OfferRepository.get_by_id(db, offer_id)
     if not offer:
@@ -93,7 +117,13 @@ def review_offer(offer_id: int, payload: OfferReview, current_user: dict = Depen
     return OfferRead(id=offer.id, title=offer.title, mission=offer.mission, competences=offer.competences, company_id=offer.company_id, status=offer.status)
 
 
-@router.post("/offers/{offer_id}/applications", response_model=ApplicationRead, tags=["offers"])
+@router.post(
+    "/offers/{offer_id}/applications",
+    response_model=ApplicationRead,
+    tags=["offers"],
+    summary="Déposer une candidature sur une offre publiée",
+    responses=error_responses(400, 401, 403, 404),
+)
 def create_application(offer_id: int, current_user: dict = Depends(require_role("student", "admin")), db: Session = Depends(get_db)) -> ApplicationRead:
     offer = OfferRepository.get_by_id(db, offer_id)
     if not offer:
@@ -113,7 +143,13 @@ def my_applications(current_user: dict = Depends(require_role("student", "compan
     return [ApplicationRead(id=application.id, student_id=application.student_id, offer_id=application.offer_id, status=application.status) for application in applications]
 
 
-@router.get("/offers/{offer_id}/applications", response_model=list[ApplicationRead], tags=["offers"])
+@router.get(
+    "/offers/{offer_id}/applications",
+    response_model=list[ApplicationRead],
+    tags=["offers"],
+    summary="Lister les candidatures d'une offre (entreprise propriétaire, responsable ou admin)",
+    responses=error_responses(401, 403, 404),
+)
 def list_offer_applications(offer_id: int, current_user: dict = Depends(require_authenticated_user), db: Session = Depends(get_db)) -> list[ApplicationRead]:
     offer = OfferRepository.get_by_id(db, offer_id)
     if not offer:
@@ -126,7 +162,13 @@ def list_offer_applications(offer_id: int, current_user: dict = Depends(require_
     return [ApplicationRead(id=application.id, student_id=application.student_id, offer_id=application.offer_id, status=application.status) for application in applications]
 
 
-@router.patch("/applications/{application_id}/decision", response_model=ApplicationRead, tags=["offers"])
+@router.patch(
+    "/applications/{application_id}/decision",
+    response_model=ApplicationRead,
+    tags=["offers"],
+    summary="Accepter, refuser ou retirer une candidature (réservé au responsable pédagogique)",
+    responses=error_responses(400, 401, 403, 404),
+)
 def decide_application(application_id: int, payload: ApplicationDecision, current_user: dict = Depends(require_role("program_manager", "admin")), db: Session = Depends(get_db)) -> ApplicationRead:
     application = OfferRepository.get_application_by_id(db, application_id)
     if not application:
@@ -137,7 +179,13 @@ def decide_application(application_id: int, payload: ApplicationDecision, curren
     return ApplicationRead(id=application.id, student_id=application.student_id, offer_id=application.offer_id, status=application.status)
 
 
-@router.delete("/applications/{application_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["offers"])
+@router.delete(
+    "/applications/{application_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["offers"],
+    summary="Retirer sa propre candidature tant qu'elle est en attente",
+    responses=error_responses(400, 401, 403, 404),
+)
 def delete_application(application_id: int, current_user: dict = Depends(require_role("student", "admin")), db: Session = Depends(get_db)) -> None:
     application = OfferRepository.get_application_by_id(db, application_id)
     if not application:
